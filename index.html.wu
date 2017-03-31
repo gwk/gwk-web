@@ -1,0 +1,32 @@
+writeup v0
+© George King. All Rights Reserved.
+
+
+# gwk.github.io
+
+George King's personal website.
+
+
+# Select Work
+
+## <https://gwk.github.io/muck Muck: A Build Tool for Data Projects>
+Muck is my current professional focus as a research fellow for the <https://towcenter.org> Tow Center for Digital Journalism at Columbia University.
+
+## <https://gwk.github.io/writeup Writeup: A markup language>
+Writeup is a prototype markup language, similar to Markdown but aspiring to a more rigorous syntax definition and a variety of features for project documentation. It is compatible with Muck.
+
+## <https://gwk.github.io/ithy Pithy: Python Utility Library>
+Pithy is a small library of utilities for Python 3.6.
+
+## <https://github.com/gwk/pat Pat: Patch and Diff Data>
+Pat is a prototype tool for patching data files (text, CSV, JSON, etc). It is intended as an auxiliary tool for Muck, but can be used independently as well.
+
+## <https://github.com/gwk/coven Coven: Python Code Coverage Tool>
+
+
+# Writing
+
+## Programming
+
+### <link:glob/pipe-duplex/index.html Duplex Pipe IPC>
+An example of simple two-way interprocess communication using OS pipes in Python 3.
