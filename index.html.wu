@@ -28,5 +28,5 @@ Pat is a prototype tool for patching data files (text, CSV, JSON, etc). It is in
 
 ## Programming
 
-### <link:glob/pipe-duplex/index.html Duplex Pipe IPC>
+### <link:glob/pipe-ipc/index.html Duplex Pipe IPC>
 An example of simple two-way interprocess communication using OS pipes in Python 3.

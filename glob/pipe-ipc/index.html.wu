@@ -1,0 +1,58 @@
+writeup v0
+© George King. All Rights Reserved.
+
+
+# Two-way communication between Unix processes using pipes
+
+This example shows how a parent/child pair of Unix processes can communicate synchronously using a pair of OS pipes. I developed the code as a proof-of-concept for <https://gwk.github.io Muck>, which needs to establish a duplex (two-way) channel between each build step so that dependencies can be sent to the parent build process on fly. Since Muck captures the `stdout` of each build step as the product and leaves `stderr` for error reporting to the user, Muck cannot use those file descriptors as the communication channel. Instead, it uses a dedicated pipe to send the dependency paths from the child to the parent, and a second pipe through which the parent writes an acknowledgement back to the child. By reading from the acknowledgment pipe, the child blocks until the `muck` parent process has updated the dependency.
+
+The solution is conceptually simple, but requires some attention to detail. While this implementation is written in Python 3.6, it should be straightforward to translate to other languages in a Unix-like environment.
+
+First, the parent process creates two read/write pairs of file descriptors using `os.pipe`. One is the 'parent-to-child' pair, and the other is the 'child-to-parent'.
+| p_to_c_r, p_to_c_w = os.pipe() # parent-to-child.
+| c_to_p_r, c_to_p_w = os.pipe() # child-to-parent.
+|
+| parent_pair = (c_to_p_r, p_to_c_w) # used by parent.
+| child_pair  = (p_to_c_r, c_to_p_w) # used by child.
+Note how we cross the pairs returned from `os.pipe` into a read/write pair for use by the parent, and another for the child (I mixed these up initially).
+
+Next, we create an environment for the child which communicates the child pair. Raw file descripters are just integers (essentially opaque table indices provided by the OS), so we can simply convert them to strings:
+| env = os.environ.copy()
+| env.update({
+|   'CHILD_RECV' : str(child_pair[0]),
+|   'CHILD_SEND' : str(child_pair[1]),
+| })
+
+The parent is now ready to launch the child process, passing one end of each pipe to the child. Unix operating systems define precise rules regarding how child processes inherit file descriptors from their parents, and Python adds its own layer of safety-oriented semantics. In short, subprocesses launched using the Python 3 `subprocess` module keep the standard trio of file descriptors open (0, 1, 2, i.e. `stdin`, `stdout`, and `stderr`), but by default close all others prior to executing the child command. However, `subprocess.Popen` and its derivatives provide an optional parameter `pass_fds` which lets us specify additional descriptors to keep open.
+| proc  = Popen('./child.py', env=env, pass_fds=child_pair)
+|
+
+Here is the crucial detail which motivated this writeup: once the child is forked off, the parent most close the child pair:
+| for fd in child_pair:
+|   os.close(fd) # crucial; otherwise parent cannot tell when child has closed its pipe or otherwise terminated.
+
+Why? In the Unix OS family, subprocesses are created by first forking the current process, which creates a nearly-identical copy, and then letting one of those copies transform itself into the child. These steps are accomplished in the `Popen` constructor via the system call `fork` and the library function `exec`, respectively. This is a rather clever (and in my opinion unintuitive) trick that you can read about further in `man 2 fork` and `man 3 exec`. For our purposes, the important detail is that when the fork happens, both copies have an identical table of file descriptors. However the parent process knows from the return value of `fork` that it is the parent, and the child copy knows that it is the child. The parent gets back the ID of the child, which `subprocess` packages up into a convenient `Popen` object. The child performs the cleanup described above, closing outstanding file descriptors, and then calls `exec` to replace itself with the specified command (in our case `'./child.py'`).
+
+OK, so what? Thanks to the `pass_fds` feature of `Popen`, the child process automatically closes the descriptors in `parent_pair` because they were not included in `pass_fds`. This is good; the child should not have access to the parent's pipe ends. However, the parent's table does not get altered at all; it still has open descriptors for `child_pair`! In other words, both processes have handles on the 'parent-to-child read' and 'child-to-parent write' pipe ends.
+
+This matters because the child-to-parent pipe will only deliver end-of-file to the reader when <b: all> handles to the write end are closed (explained in `man 2 pipe`; the man page refers to this state as "widowed"). So, if the parent keeps the child-to-parent read pipe end alive, then it cannot detect that the child has closed that pipe. Thus the parent will be stuck waiting for messages even after the child terminates.
+
+The remainder of the demo is straightforward. Each process can read and write to the raw file descriptors using `os.read` and `os.write`, but it is more convenient to create high-level file objects from the integer descriptors. Recall that the child gets its descriptors from key-value pairs in its environment, which it must first convert to `int`:
+| recv = open(int(os.environ['CHILD_RECV']), 'r')
+| send = open(int(os.environ['CHILD_SEND']), 'w')
+
+In particular, file objects give us the convenience of reading a line at a time using `recv.readline()`. Whenever one process tries to read a line from it's readable pipe, it will block (meaning that the OS will suspend it and switch to a different task) until the the other process writes a line into the pipe. The intended usage is for the child to do work, and whenever it needs something from the parent, send a message over its pipe and then wait for a response to come back on the other pipe. The parent on the other hand acts as a server, waiting in a loop for a message to come down its readable pipe, then taking some action and finally writing a response down the other pipe.
+
+Below is the complete implementation and output.
+
+
+<https://github.com/gwk/gwk-web/blob/master/glob/pipe-duplex/parent.py parent.py>:
+<embed: parent.py>
+
+
+<https://github.com/gwk/gwk-web/blob/master/glob/pipe-duplex/child.py child.py>:
+<embed: child.py>
+
+
+output (without colors):
+<embed: output.txt>
