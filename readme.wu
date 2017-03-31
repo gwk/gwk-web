@@ -1,0 +1,9 @@
+writeup v0
+
+# gwk-web
+
+This repository contains the sources for https://gwk.github.io. The site is generated using <https://gwk.github.io/muck Muck>.
+
+# How it works
+
+Github has a feature called "Github Pages" that provides static site hosting for user and project sites. Because user sites are served directly out of the master branch (whereas project pages can be served out of the `docs/` subdirectory), the site is structured in two parts: this source repo, and a contents submodule repo which contains the generated content. The top-level makefile uses Muck to build the site, then copies the built site into the site repo.
