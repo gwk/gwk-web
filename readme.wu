@@ -6,4 +6,4 @@ This repository contains the sources for https://gwk.github.io. The site is gene
 
 # How it works
 
-Github has a feature called "Github Pages" that provides static site hosting for user and project sites. Because user sites are served directly out of the master branch (whereas project pages can be served out of the `docs/` subdirectory), the site is structured in two parts: this source repo, and a contents submodule repo which contains the generated content. The top-level makefile uses Muck to build the site, then copies the built site into the site repo.
+Github has a feature called "Github Pages" that provides static site hosting for user and project sites. Because user sites are <https://help.github.com/articles/configuring-a-publishing-source-for-github-pages served directly out of the master> branch (whereas project pages can be served out of the `docs/` subdirectory), the site is structured in two parts: this source repo, and a contents submodule repo called `gwk.github.io` and checked out as `site` which contains the generated content. The top-level makefile uses Muck to build the pages, then copies the built product into `site`.
