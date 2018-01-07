@@ -2,6 +2,8 @@ writeup v0
 © George King. All Rights Reserved.
 
 
+2017-03-31
+
 # Two-way communication between Unix processes using pipes
 
 This example shows how a parent/child pair of Unix processes can communicate synchronously using a pair of OS pipes. I developed the code as a proof-of-concept for <https://gwk.github.io Muck>, which needs to establish a duplex (two-way) channel between each build step so that dependencies can be sent to the parent build process on fly. Since Muck captures the `stdout` of each build step as the product and leaves `stderr` for error reporting to the user, Muck cannot use those file descriptors as the communication channel. Instead, it uses a dedicated pipe to send the dependency paths from the child to the parent, and a second pipe through which the parent writes an acknowledgement back to the child. By reading from the acknowledgment pipe, the child blocks until the `muck` parent process has updated the dependency.
@@ -54,5 +56,5 @@ Below is the complete implementation and output.
 <embed: child.py>
 
 
-output (without colors):
-<embed: output.txt>
+Output:
+<embed: log.html>
